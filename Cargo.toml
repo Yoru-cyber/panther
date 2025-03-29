@@ -2,7 +2,8 @@
 name = "panther"
 version = "0.0.1"
 edition = "2021"
-
+license = "GPLv3 or later"
+license-file = "LICENSE"
 [dependencies]
 reqwest = "0.12.15"
 serde = {version = "1.0.219", features = ["std", "derive"]}
