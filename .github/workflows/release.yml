@@ -19,13 +19,6 @@ jobs:
         run: |
           VERSION=$(echo "${GITHUB_REF#refs/heads/release/v}")
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-      - name: Install git-chglog
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/git-chglog/git-chglog/master/install.sh | sh -s -- -b $HOME/.local/bin
-
-      - name: Generate Changelog
-        run: |
-          $HOME/.local/bin/git-chglog > CHANGELOG.md
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
