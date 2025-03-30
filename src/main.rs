@@ -1,3 +1,4 @@
+use colored::Colorize;
 use reqwest::StatusCode;
 use serde::Deserialize;
 use std::{
@@ -9,8 +10,8 @@ use std::{
 /*
  * TODO:
  * [x] Improve error handling in function test_url, may fail if dns cannot resolve domain.
- * [ ] Pretiffy terminal prints in test_url
- * [ ] More options for different HTTP codes
+ * [x] Pretiffy terminal prints in test_url
+ * [x] More options for different HTTP codes
  * [ ] Add command line args to test single domain or list
  * [x] Check if response was okay in download_json_github
  */
@@ -319,21 +320,28 @@ async fn test_url(url: &str) -> Result<(), Box<dyn std::error::Error>> {
     let response_result = reqwest::get(url).await;
 
     match response_result {
-        Ok(response) => {
-            match response.status() {
-                StatusCode::OK | StatusCode::CREATED | StatusCode::ACCEPTED | StatusCode::NON_AUTHORITATIVE_INFORMATION | StatusCode::NO_CONTENT | StatusCode::RESET_CONTENT | StatusCode::PARTIAL_CONTENT | StatusCode::MULTI_STATUS | StatusCode::ALREADY_REPORTED | StatusCode::IM_USED => {
-                    println!("{} is available", url);
-                }
-                status if status.is_server_error() => {
-                    println!("{} is not available", url);
-                }
-                other_status => {
-                    println!("{} responded {}", url, other_status);
-                }
+        Ok(response) => match response.status() {
+            StatusCode::OK
+            | StatusCode::CREATED
+            | StatusCode::ACCEPTED
+            | StatusCode::NON_AUTHORITATIVE_INFORMATION
+            | StatusCode::NO_CONTENT
+            | StatusCode::RESET_CONTENT
+            | StatusCode::PARTIAL_CONTENT
+            | StatusCode::MULTI_STATUS
+            | StatusCode::ALREADY_REPORTED
+            | StatusCode::IM_USED => {
+                println!("{} is {}", url.blue(), "available".green());
             }
-        }
+            status if status.is_server_error() => {
+                println!("{} is {}", url.blue(), "not available".red());
+            }
+            other_status => {
+                println!("{} responded {}", url.blue(), other_status.as_str().yellow());
+            }
+        },
         Err(e) => {
-            eprintln!("Error fetching {}: {}", url, e);
+            eprintln!("{}", e.to_string().red());
         }
     }
     Ok(())
