@@ -39,7 +39,7 @@ jobs:
           mv target/release/panther panther-linux
       - name: Upload Linux Binary to Release
         run: |
-          gh release upload ${{ steps.version.outputs.VERSION }} ./panther-linux --name panther-linux --clobber
+          gh release upload ${{ steps.version.outputs.VERSION }} ./panther-linux --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   build-windows:
@@ -60,7 +60,7 @@ jobs:
 
       - name: Upload Linux Binary to Release
         run: |
-          gh release upload ${{ steps.version.outputs.VERSION }} ./panther-windows.exe --name panther-windows.exe --clobber
+          gh release upload ${{ steps.version.outputs.VERSION }} ./panther-windows.exe --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     needs: release
