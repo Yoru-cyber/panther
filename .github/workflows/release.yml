@@ -19,19 +19,19 @@ jobs:
         run: |
           VERSION=$(echo "${GITHUB_REF#refs/heads/v}")
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+      - name: Install git-chglog
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/git-chglog/git-chglog/master/install.sh | sh -s -- -b $HOME/.local/bin
 
       - name: Generate Changelog
-        uses: charmbracelet/changelog@v0.2.2
-        id: changelog
-        with:
-          version: ${{ steps.version.outputs.VERSION }}
-
+        run: |
+          $HOME/.local/bin/git-chglog > CHANGELOG.md
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.version.outputs.VERSION }}
           name: Release ${{ steps.version.outputs.VERSION }}
-          body: ${{ steps.changelog.outputs.changelog }}
+          body_path: CHANGELOG.md
           draft: false
           prerelease: false
 
