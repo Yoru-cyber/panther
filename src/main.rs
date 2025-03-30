@@ -8,7 +8,7 @@ use std::{
 };
 /*
  * TODO:
- * [ ] Improve error handling in function test_url, may fail if dns cannot resolve domain.
+ * [x] Improve error handling in function test_url, may fail if dns cannot resolve domain.
  * [ ] Pretiffy terminal prints in test_url
  * [ ] More options for different HTTP codes
  * [ ] Add command line args to test single domain or list
@@ -209,7 +209,7 @@ async fn download_json_github(
     let mut response = reqwest::get(url).await?;
     if response.status().is_success() {
         let mut file = fs::File::create(output_path)?;
-        /* Reading and writing in chunks avoids creating a large buffer 
+        /* Reading and writing in chunks avoids creating a large buffer
         for reading the whole response body which is 432Kb today's 30/03/2025. */
         while let Some(chunk) = response.chunk().await? {
             std::io::copy(&mut chunk.as_ref(), &mut file)?;
@@ -316,10 +316,25 @@ async fn test_url(url: &str) -> Result<(), Box<dyn std::error::Error>> {
     FIXME:
     Improved error handling, add more status codes
      */
-    let status = reqwest::get(url).await?.status();
-    match status {
-        StatusCode::OK => println!("{} is available", url),
-        _ => println!("{} responded with {}", url, status),
+    let response_result = reqwest::get(url).await;
+
+    match response_result {
+        Ok(response) => {
+            match response.status() {
+                StatusCode::OK | StatusCode::CREATED | StatusCode::ACCEPTED | StatusCode::NON_AUTHORITATIVE_INFORMATION | StatusCode::NO_CONTENT | StatusCode::RESET_CONTENT | StatusCode::PARTIAL_CONTENT | StatusCode::MULTI_STATUS | StatusCode::ALREADY_REPORTED | StatusCode::IM_USED => {
+                    println!("{} is available", url);
+                }
+                status if status.is_server_error() => {
+                    println!("{} is not available", url);
+                }
+                other_status => {
+                    println!("{} responded {}", url, other_status);
+                }
+            }
+        }
+        Err(e) => {
+            eprintln!("Error fetching {}: {}", url, e);
+        }
     }
     Ok(())
 }
@@ -331,13 +346,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     download_json_github(url, output_path).await?;
     println!("File downloaded successfully to: {}", output_path);
     //Change unwrap
-       let json = read_json_from_file("./index.min.json").unwrap();
-       for extension in json.iter() {
-           if extension.lang == "es" {
-               for src in extension.sources.iter(){
-                   test_url(&src.base_url).await?;
-               }
-           }
-       }
+    let json = read_json_from_file("./index.min.json").unwrap();
+    for extension in json.iter() {
+        if extension.lang == "es" {
+            for src in extension.sources.iter() {
+                test_url(&src.base_url).await?;
+            }
+        }
+    }
     Ok(())
 }
