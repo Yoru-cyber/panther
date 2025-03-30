@@ -3,7 +3,7 @@ name: Release Workflow
 on:
   push:
     branches:
-      - 'release/*'
+      - "release/*"
 
 jobs:
   release:
@@ -47,7 +47,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
+        with:
+          fetch-depth: 0 # Required for git describe --tags
+      - name: Get version from branch name
+        id: version
+        run: |
+          VERSION=$(echo "${GITHUB_REF#refs/heads/release/v}")
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
       - name: Setup Rust Toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
@@ -58,9 +64,9 @@ jobs:
           cargo build --release --target x86_64-pc-windows-gnu
           mv target/x86_64-pc-windows-gnu/release/panther.exe panther-windows.exe
 
-      - name: Upload Linux Binary to Release
+      - name: Upload Windows Binary to Release
         run: |
-          gh release upload ${{ steps.version.outputs.VERSION }} ./panther-windows.exe --clobber
+          gh release upload ${{ steps.version.outputs.VERSION }} panther-windows.exe --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     needs: release
