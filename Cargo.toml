@@ -1,6 +1,6 @@
 [package]
 name = "panther"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2021"
 license = "GPLv3 or later"
 license-file = "LICENSE"
