@@ -1,13 +1,19 @@
-use std::{error::Error, fs::File, io::BufReader, path::Path};
+use colored::Colorize;
 use reqwest::StatusCode;
 use serde::Deserialize;
-use tokio::fs;
-/* 
+use std::{
+    error::Error,
+    fs::{self, File},
+    io::BufReader,
+    path::Path,
+};
+/*
  * TODO:
  * [x] Improve error handling in function test_url, may fail if dns cannot resolve domain.
  * [x] Pretiffy terminal prints in test_url
  * [x] More options for different HTTP codes
- * [x] Add command line args to test single domain or list
+ * [ ] Add command line args to test single domain or list
+ * [x] Check if response was okay in download_json_github
  */
 /// Represents a data source with its associated metadata.
 ///
@@ -182,7 +188,7 @@ struct Extension {
 /// # Example
 ///
 /// ```rust,no_run
-/// use panther::download_json_github; 
+/// use panther::download_json_github;
 /// use tokio;
 ///
 /// #[tokio::main]
@@ -201,11 +207,20 @@ async fn download_json_github(
     url: &str,
     output_path: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let response = reqwest::get(url).await?;
-    let mut file = fs::File::create(output_path).await?;
-    let mut content = std::io::Cursor::new(response.bytes().await?);
-    tokio::io::copy(&mut content, &mut file).await?;
-    Ok(())
+    let mut response = reqwest::get(url).await?;
+    if response.status().is_success() {
+        let mut file = fs::File::create(output_path)?;
+        /* Reading and writing in chunks avoids creating a large buffer
+        for reading the whole response body which is 432Kb today's 30/03/2025. */
+        while let Some(chunk) = response.chunk().await? {
+            std::io::copy(&mut chunk.as_ref(), &mut file)?;
+        }
+        Ok(())
+    } else if response.status() == reqwest::StatusCode::NOT_FOUND {
+        return Err("Resource not found".into());
+    } else {
+        return Err(format!("HTTP error: {}", response.status()).into());
+    }
 }
 /// Reads a JSON file and deserializes its contents into a vector of `Extension` structs.
 ///
@@ -239,7 +254,7 @@ async fn download_json_github(
 ///
 /// ```rust,no_run
 /// use std::path::Path;
-/// use panther::{read_json_from_file, Extension, Source}; 
+/// use panther::{read_json_from_file, Extension, Source};
 ///
 /// fn main() -> Result<(), Box<dyn std::error::Error>> {
 ///     // Assuming you have a file named "extensions.json" in the same directory.
@@ -288,7 +303,7 @@ fn read_json_from_file<P: AsRef<Path>>(path: P) -> Result<Vec<Extension>, Box<dy
 /// # Example
 ///
 /// ```rust,no_run
-/// use panther::test_url; 
+/// use panther::test_url;
 /// use tokio;
 ///
 /// #[tokio::main]
@@ -299,13 +314,35 @@ fn read_json_from_file<P: AsRef<Path>>(path: P) -> Result<Vec<Extension>, Box<dy
 /// ```
 async fn test_url(url: &str) -> Result<(), Box<dyn std::error::Error>> {
     /*
-    FIXME: 
+    FIXME:
     Improved error handling, add more status codes
      */
-    let status = reqwest::get(url).await?.status();
-    match status {
-        StatusCode::OK => println!("{} is available", url),
-        _ => println!("{} responded with {}", url, status),
+    let response_result = reqwest::get(url).await;
+
+    match response_result {
+        Ok(response) => match response.status() {
+            StatusCode::OK
+            | StatusCode::CREATED
+            | StatusCode::ACCEPTED
+            | StatusCode::NON_AUTHORITATIVE_INFORMATION
+            | StatusCode::NO_CONTENT
+            | StatusCode::RESET_CONTENT
+            | StatusCode::PARTIAL_CONTENT
+            | StatusCode::MULTI_STATUS
+            | StatusCode::ALREADY_REPORTED
+            | StatusCode::IM_USED => {
+                println!("{} is {}", url.blue(), "available".green());
+            }
+            status if status.is_server_error() => {
+                println!("{} is {}", url.blue(), "not available".red());
+            }
+            other_status => {
+                println!("{} responded {}", url.blue(), other_status.as_str().yellow());
+            }
+        },
+        Err(e) => {
+            eprintln!("{}", e.to_string().red());
+        }
     }
     Ok(())
 }
@@ -320,7 +357,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let json = read_json_from_file("./index.min.json").unwrap();
     for extension in json.iter() {
         if extension.lang == "es" {
-            for src in extension.sources.iter(){
+            for src in extension.sources.iter() {
                 test_url(&src.base_url).await?;
             }
         }
