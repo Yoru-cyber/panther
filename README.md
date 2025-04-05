@@ -9,6 +9,10 @@ Downloads a Tachiyomi index.json and parses through it, then checks the availabi
 * `serde_json`: For working with JSON data.
 * `tokio`: For asynchronous operations.
 
+## Demo
+
+https://github.com/user-attachments/assets/3ed09e15-b3c1-4090-b889-e4052bd0367a
+
 ## Setup Instructions
 
 1.  **Install Rust and Cargo:**
