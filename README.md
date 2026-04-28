@@ -1,13 +1,12 @@
 # Panther 🐈‍⬛
 
-Downloads a Tachiyomi index.json and parses through it, then checks the availability of each source URL for each extension.
+Async CLI tool that bulk-validates hundreds of manga source URLs by 
+downloading and parsing the Tachiyomi extension registry, then concurrently 
+checking each source's availability. Reduces what would be hours of manual 
+checking to under a minute.
 
-## Dependencies
-
-* `reqwest`: For making HTTP requests.
-* `serde`: For serializing and deserializing JSON data.
-* `serde_json`: For working with JSON data.
-* `tokio`: For asynchronous operations.
+Built with Rust · Tokio · Serde · Reqwest  
+CI/CD pipeline auto-distributes binaries for Linux and Windows on release.
 
 ## Demo
 
